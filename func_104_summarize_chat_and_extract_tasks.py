@@ -1,4 +1,4 @@
-def func_104_summarize_chat_messages(arguments):
+def func_104_summarize_chat_and_extract_tasks(arguments):
     debug = arguments.get("debug", False)
 
     if debug:
