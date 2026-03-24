@@ -1,5 +1,5 @@
 {
-  "name": "func_104_summarize_chat_messages",
+  "name": "func_104_summarize_chat_and_extract_tasks",
   "description": "Анализирует список сообщений и формирует краткую сводку обсуждений, ключевые темы и список задач.",
   "parameters": {
     "type": "object",
