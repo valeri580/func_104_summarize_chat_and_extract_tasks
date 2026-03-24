@@ -1,0 +1,20 @@
+{
+  "name": "func_104_summarize_chat_messages",
+  "description": "Анализирует список сообщений и формирует краткую сводку обсуждений, ключевые темы и список задач.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "messages": {
+        "type": "array",
+        "description": "Список сообщений для анализа",
+        "default": []
+      },
+      "debug": {
+        "type": "boolean",
+        "description": "Включение отладочного режима",
+        "default": false
+      }
+    },
+    "required": ["messages"]
+  }
+}
