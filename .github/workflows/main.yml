@@ -1,4 +1,4 @@
-name: func_104_summarize_chat_messages Workflow
+name: func_104_summarize_chat_and_extract_tasks
 
 on:
   push:
@@ -24,4 +24,4 @@ jobs:
         pip install requests openai
 
     - name: Launch the function
-      run: python run_func_104_summarize_chat_messages.py
+      run: python func_104_summarize_chat_and_extract_tasks.py
