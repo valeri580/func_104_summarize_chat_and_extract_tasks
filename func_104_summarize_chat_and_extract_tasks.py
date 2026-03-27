@@ -6,8 +6,6 @@ def func_104_summarize_chat_and_extract_tasks(arguments):
         print(f"DEBUG: Args: {arguments}")
 
     try:
-        from openai import OpenAI
-
         # ========================
         # CONFIG / CONSTANTS
         # ========================
@@ -26,9 +24,7 @@ def func_104_summarize_chat_and_extract_tasks(arguments):
         # ========================
 
         def validate_input(messages):
-            if not isinstance(messages, list) or not messages:
-                return False
-            return True
+            return isinstance(messages, list) and len(messages) > 0
 
         def clean_messages(messages):
             result = []
@@ -114,8 +110,8 @@ def func_104_summarize_chat_and_extract_tasks(arguments):
 {combined_context}
 """
 
-        def call_llm(client, model, system_prompt, user_prompt, max_tokens, temperature):
-            response = client.chat.completions.create(
+        def call_llm(chat, model, system_prompt, user_prompt, max_tokens, temperature):
+            response = chat(
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -125,11 +121,11 @@ def func_104_summarize_chat_and_extract_tasks(arguments):
                 max_tokens=max_tokens
             )
 
-            text = response.choices[0].message.content.strip()
+            text = response['choices'][0]['message']['content'].strip()
 
             tokens = 0
-            if hasattr(response, "usage"):
-                tokens = response.usage.completion_tokens
+            if 'usage' in response:
+                tokens = response['usage'].get('completion_tokens', 0)
 
             return text, tokens
 
@@ -172,11 +168,9 @@ def func_104_summarize_chat_and_extract_tasks(arguments):
         chunks = chunk_messages(messages)
 
         # ========================
-        # LLM INIT
+        # LLM INIT (SMAIPL OpenRouter)
         # ========================
-        client = OpenAI(
-            api_key=arguments['ENV']['SMAIPL_OPENAI_API_KEY']
-        )
+        chat = arguments['ENV']['SMAIPL_OPENROUTER_CHATGPT']
 
         system_prompt = build_system_prompt(chat_type)
 
@@ -191,7 +185,7 @@ def func_104_summarize_chat_and_extract_tasks(arguments):
             prompt = build_chunk_prompt(context)
 
             text, tokens = call_llm(
-                client,
+                chat,
                 model,
                 system_prompt,
                 prompt,
@@ -215,7 +209,7 @@ def func_104_summarize_chat_and_extract_tasks(arguments):
         )
 
         final_text, tokens = call_llm(
-            client,
+            chat,
             model,
             system_prompt,
             final_prompt,
