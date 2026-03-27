@@ -1,4 +1,4 @@
-from func_104_summarize_chat_and_extract_tasks import func_104_summarize_chat_and_extract_tasks
+from func_summarize_chat_and_extract_tasks import func_summarize_chat_and_extract_tasks
 
 print("=== TEST 1: Happy Path ===")
 
@@ -10,7 +10,7 @@ def mock_chat(**kwargs):
         "usage": {"completion_tokens": 10}
     }
 
-result = func_104_summarize_chat_and_extract_tasks({
+result = func_summarize_chat_and_extract_tasks({
     "messages": [
         "Иван (прораб): привезли цемент",
         "Петр (логистика): машина задерживается"
