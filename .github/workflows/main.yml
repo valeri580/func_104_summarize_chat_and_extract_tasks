@@ -1,4 +1,4 @@
-name: func_104_summarize_chat_and_extract_tasks
+name: func_summarize_chat_and_extract_tasks
 
 on:
   push:
