@@ -7,10 +7,14 @@ def func_summarize_chat_and_extract_tasks(arguments):
 
     try:
         # ========================
-        # CONFIG / CONSTANTS
+        # IMPORTS (только внутри!)
+        # ========================
+        from smaipl.usd_to_smaipl_tokens import usd_to_smaipl_tokens
+
+        # ========================
+        # CONFIG
         # ========================
         MAX_MESSAGES = 500
-        MIN_MESSAGE_LENGTH = 10
         CHUNK_SIZE = 120
 
         ALLOWED_MODELS = [
@@ -24,15 +28,20 @@ def func_summarize_chat_and_extract_tasks(arguments):
         # ========================
 
         def validate_input(messages):
-            return isinstance(messages, list) and len(messages) > 0
+            if not isinstance(messages, list):
+                return False
+            if len(messages) == 0:
+                return False
+            if not all(isinstance(m, str) for m in messages):
+                return False
+            return True
 
         def clean_messages(messages):
             result = []
             for msg in messages:
-                if isinstance(msg, str):
-                    text = msg.strip()
-                    if text and len(text) > MIN_MESSAGE_LENGTH:
-                        result.append(text)
+                text = msg.strip()
+                if text:
+                    result.append(text)
             return result
 
         def limit_messages(messages):
@@ -123,11 +132,14 @@ def func_summarize_chat_and_extract_tasks(arguments):
 
             text = response['choices'][0]['message']['content'].strip()
 
-            tokens = 0
-            if 'usage' in response:
-                tokens = response['usage'].get('completion_tokens', 0)
+            if not text:
+                text = "Нет данных"
 
-            return text, tokens
+            cost = 0.0
+            if 'usage' in response:
+                cost = response['usage'].get('cost', 0.0)
+
+            return text, cost
 
         # ========================
         # INPUT
@@ -160,7 +172,7 @@ def func_summarize_chat_and_extract_tasks(arguments):
             return {
                 "result": {
                     "error": "Нет сообщений после фильтрации",
-                    "details": "Все сообщения слишком короткие или пустые"
+                    "details": "Все сообщения пустые"
                 },
                 "status": "error"
             }
@@ -168,23 +180,32 @@ def func_summarize_chat_and_extract_tasks(arguments):
         chunks = chunk_messages(messages)
 
         # ========================
-        # LLM INIT (SMAIPL OpenRouter)
+        # LLM INIT
         # ========================
-        chat = arguments['ENV']['SMAIPL_OPENROUTER_CHATGPT']
+        chat = arguments.get('ENV', {}).get('SMAIPL_OPENROUTER_CHATGPT')
+
+        if not chat:
+            return {
+                "result": {
+                    "error": "Нет доступа к LLM",
+                    "details": "ENV не содержит SMAIPL_OPENROUTER_CHATGPT"
+                },
+                "status": "error"
+            }
 
         system_prompt = build_system_prompt(chat_type)
 
         # ========================
-        # STEP 1: CHUNK SUMMARIES
+        # STEP 1: CHUNKS
         # ========================
         partial_summaries = []
-        total_completion_tokens = 0
+        total_cost = 0.0
 
         for chunk in chunks:
             context = "\n".join(chunk)
             prompt = build_chunk_prompt(context)
 
-            text, tokens = call_llm(
+            text, cost = call_llm(
                 chat,
                 model,
                 system_prompt,
@@ -194,10 +215,10 @@ def func_summarize_chat_and_extract_tasks(arguments):
             )
 
             partial_summaries.append(text)
-            total_completion_tokens += tokens
+            total_cost += cost
 
         # ========================
-        # STEP 2: MERGE SUMMARIES
+        # STEP 2: FINAL
         # ========================
         combined_context = "\n\n---\n\n".join(partial_summaries)
 
@@ -208,7 +229,7 @@ def func_summarize_chat_and_extract_tasks(arguments):
             chat_type
         )
 
-        final_text, tokens = call_llm(
+        final_text, cost = call_llm(
             chat,
             model,
             system_prompt,
@@ -217,24 +238,23 @@ def func_summarize_chat_and_extract_tasks(arguments):
             temperature=0.4
         )
 
-        total_completion_tokens += tokens
+        total_cost += cost
 
         # ========================
-        # USAGE
+        # USAGE (ПРАВИЛЬНЫЙ!)
         # ========================
-        BILLING_MULTIPLIER = arguments['ENV'].get('SMAIPL_KIE_COEF', 1.0)
-        total_tokens = float(total_completion_tokens * BILLING_MULTIPLIER)
+        usage = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": usd_to_smaipl_tokens(total_cost)
+        }
 
         return {
             "result": {
                 "data": final_text,
                 "success": True
             },
-            "usage": {
-                "prompt_tokens": 0,
-                "completion_tokens": total_completion_tokens,
-                "total_tokens": total_tokens
-            },
+            "usage": usage,
             "status": "success"
         }
 
