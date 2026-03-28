@@ -7,7 +7,7 @@ def mock_chat(**kwargs):
         "choices": [
             {"message": {"content": "Тестовое саммари"}}
         ],
-        "usage": {"completion_tokens": 10}
+        "usage": {"cost": 0.001}
     }
 
 result = func_summarize_chat_and_extract_tasks({
@@ -21,12 +21,15 @@ result = func_summarize_chat_and_extract_tasks({
     "domain": "construction",
     "debug": True,
     "ENV": {
-        "SMAIPL_OPENROUTER_CHATGPT": mock_chat,
-        "SMAIPL_KIE_COEF": 1.0
+        "SMAIPL_OPENROUTER_CHATGPT": mock_chat
     }
 })
 
 print(result)
 
 assert result.get("status") == "success"
+assert "result" in result
+assert "usage" in result
+assert isinstance(result["usage"]["total_tokens"], float)
+
 print("=== TEST PASSED ===")
